@@ -2,30 +2,29 @@ import { useEffect, useState } from "react";
 import { getListings } from "./api";
 import { useNavigate } from "react-router-dom";
 
-type Listing = {
-    id: number;
-    title: string;
-    price_total: number;
-    bedrooms: number | null;
-    bathrooms: number | null;
-    area_sqft: number | null;
-    image_url: string | null;
-};
-
 export default function ListingsPage() {
-    const [listings, setListings] = useState<Listing[]>([]);
+    const [listings, setListings] = useState([]);
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
+
+    const limit = 20;
     const navigate = useNavigate();
 
     useEffect(() => {
-        getListings().then((res) => setListings(res.data));
-    }, []);
+        getListings(page, limit).then((res) => {
+            setListings(res.data.data);
+            setTotal(res.data.total);
+        });
+    }, [page]);
+
+    const totalPages = Math.ceil(total / limit);
 
     return (
         <div style={{ padding: 20 }}>
             <h1>Listings</h1>
 
             <div style={{ display: "grid", gap: 16 }}>
-                {listings.map((l) => (
+                {listings.map((l: any) => (
                     <div
                         key={l.id}
                         onClick={() => navigate(`/listing/${l.id}`)}
@@ -34,24 +33,41 @@ export default function ListingsPage() {
                             padding: 12,
                             display: "flex",
                             gap: 12,
-                            borderRadius: 8,
                             cursor: "pointer",
                         }}
                     >
-                        {l.image_url && (
-                            <img src={l.image_url} width={140} />
-                        )}
+                        {l.image_url && <img src={l.image_url} width={140} />}
 
                         <div>
                             <h3>{l.title}</h3>
-                            <p>${l.price_total.toLocaleString()}</p>
+                            <p>${l.price_total}</p>
                             <p>
-                                {l.bedrooms ?? "?"} bd • {l.bathrooms ?? "?"} ba •{" "}
-                                {l.area_sqft ?? "?"} sqft
+                                {l.bedrooms ?? "?"} bd • {l.bathrooms ?? "?"} ba
                             </p>
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* pagination controls */}
+            <div style={{ marginTop: 20 }}>
+                <button
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                >
+                    Prev
+                </button>
+
+                <span style={{ margin: "0 10px" }}>
+                    Page {page} / {totalPages}
+                </span>
+
+                <button
+                    disabled={page === totalPages}
+                    onClick={() => setPage(page + 1)}
+                >
+                    Next
+                </button>
             </div>
         </div>
     );

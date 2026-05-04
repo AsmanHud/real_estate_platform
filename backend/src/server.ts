@@ -15,18 +15,28 @@ const pool = mysql.createPool({
 });
 
 app.get("/api/listings", async (req, res) => {
-    try {
-        const [rows] = await pool.query(`
-      SELECT id, title, price_total, bedrooms, bathrooms, area_sqft, image_url
-      FROM listings
-      LIMIT 50
-    `);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
 
-        res.json(rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Internal server error" });
-    }
+    const offset = (page - 1) * limit;
+
+    const [rows] = await pool.query(
+        "SELECT * FROM listings LIMIT ? OFFSET ?",
+        [limit, offset]
+    );
+
+    const [countRows] = await pool.query(
+        "SELECT COUNT(*) as total FROM listings"
+    );
+
+    const total = (countRows as any)[0].total;
+
+    res.json({
+        data: rows,
+        page,
+        limit,
+        total,
+    });
 });
 
 app.get("/api/listings/:id", async (req, res) => {
