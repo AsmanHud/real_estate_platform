@@ -84,13 +84,17 @@ Open the Vite URL shown in the frontend terminal.
 ## Generate Data From Scratch
 
 ### Scrape data from Craigslist and select 100 normalized listings
+```bash
 python3 scripts/online/archive_craigslist_html.py
 python3 scripts/extract_raw_listing_dicts.py
 python3 scripts/hard_coded_normalization.py
 python3 scripts/select_mvp_dataset.py
+```
 
 ## Import scratch-generated data
+```bash
 python3 scripts/import_mvp_to_mysql.py --input data/processed/mvp_listings.json
+```
 
 ## Generate AI Titles And Summaries
 
