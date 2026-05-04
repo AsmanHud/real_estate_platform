@@ -1,10 +1,9 @@
+import argparse
 import json
 import os
 from pathlib import Path
 
-import mysql.connector
-
-INPUT_PATH = Path("data/processed/mvp_listings.json")
+DEFAULT_INPUT_PATH = Path("data/fixtures/mvp_listings_enriched.json")
 
 
 DB_CONFIG = {
@@ -52,6 +51,8 @@ INSERT INTO listings (
     latitude,
     longitude,
     description_raw,
+    ai_title,
+    ai_summary,
     posted_at,
     updated_at
 )
@@ -67,19 +68,51 @@ VALUES (
     %(latitude)s,
     %(longitude)s,
     %(description_raw)s,
+    %(ai_title)s,
+    %(ai_summary)s,
     %(posted_at)s,
     %(updated_at)s
 );
 """
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Import listing JSON into the MySQL listings table."
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=DEFAULT_INPUT_PATH,
+        help=f"JSON file to import. Defaults to {DEFAULT_INPUT_PATH}.",
+    )
+    return parser.parse_args()
+
+
+def ensure_ai_columns(cursor) -> None:
+    desired_columns = {
+        "ai_title": "VARCHAR(255)",
+        "ai_summary": "TEXT",
+    }
+
+    for column, column_type in desired_columns.items():
+        cursor.execute("SHOW COLUMNS FROM listings LIKE %s", (column,))
+        if cursor.fetchone() is None:
+            cursor.execute(f"ALTER TABLE listings ADD COLUMN {column} {column_type}")
+            print(f"Added column: {column}")
+
+
 def main() -> None:
-    listings = json.loads(INPUT_PATH.read_text(encoding="utf-8"))
+    args = parse_args()
+    listings = json.loads(args.input.read_text(encoding="utf-8"))
+
+    import mysql.connector
 
     conn = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
 
     cursor.execute(CREATE_TABLE_SQL)
+    ensure_ai_columns(cursor)
 
     # MVP behavior: replace dataset completely.
     cursor.execute("DELETE FROM listings;")
@@ -99,6 +132,8 @@ def main() -> None:
         "latitude",
         "longitude",
         "description_raw",
+        "ai_title",
+        "ai_summary",
         "posted_at",
         "updated_at",
     ]
@@ -113,7 +148,7 @@ def main() -> None:
     cursor.close()
     conn.close()
 
-    print(f"Loaded {len(listings)} listings from {INPUT_PATH}")
+    print(f"Loaded {len(listings)} listings from {args.input}")
     print(f"Inserted {inserted} listings into MySQL table: listings")
 
 
