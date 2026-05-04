@@ -6,8 +6,9 @@ I focused on the minimum set of fields needed to make a real estate browsing
 experience useful: listing id, title, total price, bedrooms, bathrooms, square
 footage, address, image URL, latitude/longitude, raw description, posted/updated
 timestamps, and later AI-generated title and summary fields. These fields support
-the core user actions in the MVP: scan listings, filter by basic constraints,
-open a detail page, and understand whether a listing is worth investigating.
+the core user actions in the MVP: search by text, filter by basic constraints,
+scan listings, open a detail page, and understand whether a listing is worth
+investigating.
 
 ## Handling Low-Quality Data
 
@@ -37,6 +38,10 @@ The app does not call the LLM during browsing. Enrichment is offline, saved in
 MySQL, and also exported into a committed enriched JSON fixture so the project can
 run without an API key.
 
+I also committed a raw fixture with the same 100 listings before enrichment. That
+lets a reviewer run the app with either raw or enriched copy and directly compare
+the LLM layer.
+
 ## Key Assumption
 
 The main assumption is that a small, curated set of 100 Dallas rental listings is
@@ -47,9 +52,9 @@ coverage.
 ## Success Metric
 
 One product success metric would be the percentage of users who apply at least
-one filter and then open a listing detail page. That measures whether the data,
-filters, and card summaries are helping users narrow options and continue deeper
-into the browsing flow.
+one search or filter and then open a listing detail page. That measures whether
+the data, search controls, filters, and card summaries are helping users narrow
+options and continue deeper into the browsing flow.
 
 ## Failure Mode
 
