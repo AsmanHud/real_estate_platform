@@ -31,6 +31,8 @@ type Listing = {
     area_sqft: number | null;
     address?: string | null;
     image_url: string | null;
+    ai_title: string | null;
+    ai_summary: string | null;
 };
 
 const emptyFilters: ListingFilters = {
@@ -58,9 +60,6 @@ export default function ListingsPage() {
     useEffect(() => {
         let active = true;
 
-        setLoading(true);
-        setError("");
-
         getListings(page, limit, filters)
             .then((res) => {
                 if (!active) {
@@ -69,6 +68,7 @@ export default function ListingsPage() {
 
                 setListings(res.data.data);
                 setTotal(res.data.total);
+                setError("");
             })
             .catch(() => {
                 if (active) {
@@ -112,8 +112,8 @@ export default function ListingsPage() {
                 <Container maxWidth="lg" sx={{ py: 3 }}>
                     <Stack
                         direction={{ xs: "column", sm: "row" }}
-                        justifyContent="space-between"
                         spacing={2}
+                        sx={{ justifyContent: "space-between" }}
                     >
                         <Box>
                             <Typography variant="h1">Dallas rentals</Typography>
@@ -122,7 +122,11 @@ export default function ListingsPage() {
                             </Typography>
                         </Box>
 
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ alignItems: "center" }}
+                        >
                             <Chip
                                 label={`${total.toLocaleString()} matches`}
                                 color="primary"
@@ -158,7 +162,6 @@ export default function ListingsPage() {
                             >
                                 <TextField
                                     label="Min price"
-                                    min="0"
                                     size="small"
                                     type="number"
                                     value={filters.minPrice}
@@ -169,7 +172,6 @@ export default function ListingsPage() {
 
                                 <TextField
                                     label="Max price"
-                                    min="0"
                                     size="small"
                                     type="number"
                                     value={filters.maxPrice}
@@ -199,13 +201,12 @@ export default function ListingsPage() {
                                         <MenuItem value="2">2</MenuItem>
                                         <MenuItem value="3">3</MenuItem>
                                         <MenuItem value="4">4</MenuItem>
-                                        <MenuItem value="5">5+</MenuItem>
+                                        <MenuItem value="5">5</MenuItem>
                                     </Select>
                                 </FormControl>
 
                                 <TextField
                                     label="Min area"
-                                    min="0"
                                     size="small"
                                     type="number"
                                     value={filters.minArea}
@@ -216,7 +217,6 @@ export default function ListingsPage() {
 
                                 <TextField
                                     label="Max area"
-                                    min="0"
                                     size="small"
                                     type="number"
                                     value={filters.maxArea}
@@ -243,8 +243,8 @@ export default function ListingsPage() {
                 <Stack spacing={2}>
                     <Stack
                         direction={{ xs: "column", sm: "row" }}
-                        justifyContent="space-between"
                         spacing={1}
+                        sx={{ justifyContent: "space-between" }}
                     >
                         <Typography variant="h2">Available homes</Typography>
                         <Typography color="text.secondary">
@@ -265,138 +265,148 @@ export default function ListingsPage() {
                                   variant="rounded"
                               />
                           ))
-                        : listings.map((listing) => (
-                              <Card
-                                  key={listing.id}
-                                  variant="outlined"
-                                  sx={{
-                                      overflow: "hidden",
-                                      transition:
-                                          "box-shadow 160ms ease, transform 160ms ease",
-                                      "&:hover": {
-                                          boxShadow:
-                                              "0 10px 24px rgba(15, 23, 42, 0.12)",
-                                          transform: "translateY(-1px)",
-                                      },
-                                  }}
-                              >
-                                  <CardActionArea
-                                      onClick={() =>
-                                          navigate(`/listing/${listing.id}`)
-                                      }
+                        : listings.map((listing) => {
+                              const displayTitle = listing.ai_title || listing.title;
+
+                              return (
+                                  <Card
+                                      key={listing.id}
+                                      variant="outlined"
                                       sx={{
-                                          alignItems: "stretch",
-                                          display: "flex",
-                                          flexDirection: {
-                                              xs: "column",
-                                              sm: "row",
+                                          overflow: "hidden",
+                                          transition:
+                                              "box-shadow 160ms ease, transform 160ms ease",
+                                          "&:hover": {
+                                              boxShadow:
+                                                  "0 10px 24px rgba(15, 23, 42, 0.12)",
+                                              transform: "translateY(-1px)",
                                           },
                                       }}
                                   >
-                                      {listing.image_url ? (
-                                          <Box
-                                              alt={listing.title}
-                                              component="img"
-                                              src={listing.image_url}
-                                              sx={{
-                                                  aspectRatio: {
-                                                      xs: "16 / 10",
-                                                      sm: "4 / 3",
-                                                  },
-                                                  flexShrink: 0,
-                                                  objectFit: "cover",
-                                                  width: {
-                                                      xs: "100%",
-                                                      sm: 220,
-                                                  },
-                                              }}
-                                          />
-                                      ) : (
-                                          <Box
-                                              sx={{
-                                                  alignItems: "center",
-                                                  aspectRatio: {
-                                                      xs: "16 / 10",
-                                                      sm: "4 / 3",
-                                                  },
-                                                  bgcolor: "#eef0f2",
-                                                  color: "text.secondary",
-                                                  display: "flex",
-                                                  flexShrink: 0,
-                                                  justifyContent: "center",
-                                                  width: {
-                                                      xs: "100%",
-                                                      sm: 220,
-                                                  },
-                                              }}
-                                          >
-                                              No photo
-                                          </Box>
-                                      )}
-
-                                      <CardContent sx={{ flex: 1, p: 2.5 }}>
-                                          <Stack spacing={1.5}>
-                                              <Box>
-                                                  <Typography variant="h2">
-                                                      $
-                                                      {listing.price_total.toLocaleString()}
-                                                  </Typography>
-                                                  <Typography
-                                                      color="text.primary"
-                                                      fontWeight={700}
-                                                      variant="body1"
-                                                  >
-                                                      {listing.title}
-                                                  </Typography>
-                                              </Box>
-
-                                              <Stack
-                                                  direction="row"
-                                                  divider={
-                                                      <Divider
-                                                          flexItem
-                                                          orientation="vertical"
-                                                      />
-                                                  }
-                                                  spacing={1.5}
-                                                  sx={{ flexWrap: "wrap" }}
+                                      <CardActionArea
+                                          onClick={() =>
+                                              navigate(`/listing/${listing.id}`)
+                                          }
+                                          sx={{
+                                              alignItems: "stretch",
+                                              display: "flex",
+                                              flexDirection: {
+                                                  xs: "column",
+                                                  sm: "row",
+                                              },
+                                          }}
+                                      >
+                                          {listing.image_url ? (
+                                              <Box
+                                                  alt={displayTitle}
+                                                  component="img"
+                                                  src={listing.image_url}
+                                                  sx={{
+                                                      aspectRatio: {
+                                                          xs: "16 / 10",
+                                                          sm: "4 / 3",
+                                                      },
+                                                      flexShrink: 0,
+                                                      objectFit: "cover",
+                                                      width: {
+                                                          xs: "100%",
+                                                          sm: 220,
+                                                      },
+                                                  }}
+                                              />
+                                          ) : (
+                                              <Box
+                                                  sx={{
+                                                      alignItems: "center",
+                                                      aspectRatio: {
+                                                          xs: "16 / 10",
+                                                          sm: "4 / 3",
+                                                      },
+                                                      bgcolor: "#eef0f2",
+                                                      color: "text.secondary",
+                                                      display: "flex",
+                                                      flexShrink: 0,
+                                                      justifyContent: "center",
+                                                      width: {
+                                                          xs: "100%",
+                                                          sm: 220,
+                                                      },
+                                                  }}
                                               >
-                                                  <Typography>
-                                                      <strong>
-                                                          {formatMetric(
-                                                              listing.bedrooms
-                                                          )}
-                                                      </strong>{" "}
-                                                      bd
-                                                  </Typography>
-                                                  <Typography>
-                                                      <strong>
-                                                          {formatMetric(
-                                                              listing.bathrooms
-                                                          )}
-                                                      </strong>{" "}
-                                                      ba
-                                                  </Typography>
-                                                  <Typography>
-                                                      <strong>
-                                                          {formatMetric(
-                                                              listing.area_sqft
-                                                          )}
-                                                      </strong>{" "}
-                                                      sqft
-                                                  </Typography>
-                                              </Stack>
+                                                  No photo
+                                              </Box>
+                                          )}
 
-                                              {listing.address && (
-                                                  <Typography color="text.secondary">
-                                                      {listing.address}
-                                                  </Typography>
-                                              )}
-                                          </Stack>
-                                      </CardContent>
-                                  </CardActionArea>
-                              </Card>
-                          ))}
+                                          <CardContent sx={{ flex: 1, p: 2.5 }}>
+                                              <Stack spacing={1.5}>
+                                                  <Box>
+                                                      <Typography variant="h2">
+                                                          $
+                                                          {listing.price_total.toLocaleString()}
+                                                      </Typography>
+                                                      <Typography
+                                                          color="text.primary"
+                                                          sx={{ fontWeight: 700 }}
+                                                          variant="body1"
+                                                      >
+                                                          {displayTitle}
+                                                      </Typography>
+                                                  </Box>
+
+                                                  {listing.ai_summary && (
+                                                      <Typography color="text.secondary">
+                                                          {listing.ai_summary}
+                                                      </Typography>
+                                                  )}
+
+                                                  <Stack
+                                                      direction="row"
+                                                      divider={
+                                                          <Divider
+                                                              flexItem
+                                                              orientation="vertical"
+                                                          />
+                                                      }
+                                                      spacing={1.5}
+                                                      sx={{ flexWrap: "wrap" }}
+                                                  >
+                                                      <Typography>
+                                                          <strong>
+                                                              {formatMetric(
+                                                                  listing.bedrooms
+                                                              )}
+                                                          </strong>{" "}
+                                                          bd
+                                                      </Typography>
+                                                      <Typography>
+                                                          <strong>
+                                                              {formatMetric(
+                                                                  listing.bathrooms
+                                                              )}
+                                                          </strong>{" "}
+                                                          ba
+                                                      </Typography>
+                                                      <Typography>
+                                                          <strong>
+                                                              {formatMetric(
+                                                                  listing.area_sqft
+                                                              )}
+                                                          </strong>{" "}
+                                                          sqft
+                                                      </Typography>
+                                                  </Stack>
+
+                                                  {listing.address && (
+                                                      <Typography color="text.secondary">
+                                                          {listing.address}
+                                                      </Typography>
+                                                  )}
+                                              </Stack>
+                                          </CardContent>
+                                      </CardActionArea>
+                                  </Card>
+                              );
+                          })}
 
                     {!loading && listings.length === 0 && !error && (
                         <Card variant="outlined">
@@ -406,7 +416,7 @@ export default function ListingsPage() {
                         </Card>
                     )}
 
-                    <Stack alignItems="center" sx={{ py: 2 }}>
+                    <Stack sx={{ alignItems: "center", py: 2 }}>
                         <Pagination
                             color="primary"
                             count={totalPages}

@@ -25,6 +25,8 @@ type Listing = {
     address: string | null;
     image_url: string | null;
     description_raw: string;
+    ai_title: string | null;
+    ai_summary: string | null;
 };
 
 const formatMetric = (value: number | null, fallback = "?") =>
@@ -39,20 +41,16 @@ export default function ListingDetailsPage() {
 
     useEffect(() => {
         if (!id) {
-            setLoading(false);
-            setError("Listing id is missing.");
             return;
         }
 
         let active = true;
 
-        setLoading(true);
-        setError("");
-
         getListing(Number(id))
             .then((res) => {
                 if (active) {
                     setListing(res.data);
+                    setError("");
                 }
             })
             .catch(() => {
@@ -78,7 +76,11 @@ export default function ListingDetailsPage() {
                     Back to listings
                 </Button>
 
-                {loading && (
+                {!id && (
+                    <Alert severity="error">Listing id is missing.</Alert>
+                )}
+
+                {id && loading && (
                     <Stack spacing={2}>
                         <Skeleton height={420} variant="rounded" />
                         <Skeleton height={180} variant="rounded" />
@@ -92,7 +94,7 @@ export default function ListingDetailsPage() {
                         <Card variant="outlined" sx={{ overflow: "hidden" }}>
                             {listing.image_url ? (
                                 <Box
-                                    alt={listing.title}
+                                    alt={listing.ai_title || listing.title}
                                     component="img"
                                     src={listing.image_url}
                                     sx={{
@@ -124,7 +126,7 @@ export default function ListingDetailsPage() {
                                             ${listing.price_total.toLocaleString()}
                                         </Typography>
                                         <Typography color="text.primary" variant="h2">
-                                            {listing.title}
+                                            {listing.ai_title || listing.title}
                                         </Typography>
                                     </Box>
 
@@ -167,7 +169,7 @@ export default function ListingDetailsPage() {
                                     color="text.secondary"
                                     sx={{ whiteSpace: "pre-wrap" }}
                                 >
-                                    {listing.description_raw}
+                                    {listing.ai_summary || listing.description_raw}
                                 </Typography>
                             </CardContent>
                         </Card>

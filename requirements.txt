@@ -1,3 +1,4 @@
 requests
 bs4
 mysql-connector-python
+openai>=2.0.0

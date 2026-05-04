@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS listings (
     latitude DECIMAL(10,7),
     longitude DECIMAL(10,7),
     description_raw TEXT NOT NULL,
+    ai_title VARCHAR(255),
+    ai_summary TEXT,
     posted_at VARCHAR(64),
     updated_at VARCHAR(64),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
