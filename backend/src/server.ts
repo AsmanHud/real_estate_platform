@@ -14,29 +14,91 @@ const pool = mysql.createPool({
     port: 3306,
 });
 
+const getNumberQueryParam = (value: unknown) => {
+    if (typeof value !== "string" || value.trim() === "") {
+        return undefined;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const getPositiveIntegerQueryParam = (value: unknown, fallback: number) => {
+    const parsed = getNumberQueryParam(value);
+
+    if (parsed === undefined || !Number.isInteger(parsed) || parsed < 1) {
+        return fallback;
+    }
+
+    return parsed;
+};
+
 app.get("/api/listings", async (req, res) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    try {
+        const page = getPositiveIntegerQueryParam(req.query.page, 1);
+        const limit = getPositiveIntegerQueryParam(req.query.limit, 20);
 
-    const offset = (page - 1) * limit;
+        const minPrice = getNumberQueryParam(req.query.minPrice);
+        const maxPrice = getNumberQueryParam(req.query.maxPrice);
+        const bedrooms = getNumberQueryParam(req.query.bedrooms);
+        const minArea = getNumberQueryParam(req.query.minArea);
+        const maxArea = getNumberQueryParam(req.query.maxArea);
 
-    const [rows] = await pool.query(
-        "SELECT * FROM listings LIMIT ? OFFSET ?",
-        [limit, offset]
-    );
+        const whereClauses: string[] = [];
+        const whereValues: number[] = [];
 
-    const [countRows] = await pool.query(
-        "SELECT COUNT(*) as total FROM listings"
-    );
+        if (minPrice !== undefined) {
+            whereClauses.push("price_total >= ?");
+            whereValues.push(minPrice);
+        }
 
-    const total = (countRows as any)[0].total;
+        if (maxPrice !== undefined) {
+            whereClauses.push("price_total <= ?");
+            whereValues.push(maxPrice);
+        }
 
-    res.json({
-        data: rows,
-        page,
-        limit,
-        total,
-    });
+        if (bedrooms !== undefined) {
+            whereClauses.push("bedrooms = ?");
+            whereValues.push(bedrooms);
+        }
+
+        if (minArea !== undefined) {
+            whereClauses.push("area_sqft >= ?");
+            whereValues.push(minArea);
+        }
+
+        if (maxArea !== undefined) {
+            whereClauses.push("area_sqft <= ?");
+            whereValues.push(maxArea);
+        }
+
+        const whereSql = whereClauses.length
+            ? `WHERE ${whereClauses.join(" AND ")}`
+            : "";
+        const offset = (page - 1) * limit;
+
+        const [rows] = await pool.query(
+            `SELECT * FROM listings ${whereSql} ORDER BY id LIMIT ? OFFSET ?`,
+            [...whereValues, limit, offset]
+        );
+
+        const [countRows] = await pool.query(
+            `SELECT COUNT(*) as total FROM listings ${whereSql}`,
+            whereValues
+        );
+
+        const total = (countRows as any)[0].total;
+
+        res.json({
+            data: rows,
+            page,
+            limit,
+            total,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal server error" });
+    }
 });
 
 app.get("/api/listings/:id", async (req, res) => {
