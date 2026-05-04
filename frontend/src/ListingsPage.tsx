@@ -36,6 +36,7 @@ type Listing = {
 };
 
 const emptyFilters: ListingFilters = {
+    q: "",
     minPrice: "",
     maxPrice: "",
     bedrooms: "",
@@ -118,7 +119,7 @@ export default function ListingsPage() {
                         <Box>
                             <Typography variant="h1">Dallas rentals</Typography>
                             <Typography color="text.secondary">
-                                Browse Craigslist-sourced listings with simple filters.
+                                Search and filter Craigslist-sourced listings.
                             </Typography>
                         </Box>
 
@@ -160,6 +161,17 @@ export default function ListingsPage() {
                                     },
                                 }}
                             >
+                                <TextField
+                                    label="Search"
+                                    placeholder="City, title, amenity"
+                                    size="small"
+                                    value={filters.q}
+                                    onChange={(event) =>
+                                        updateFilter("q", event.target.value)
+                                    }
+                                    sx={{ gridColumn: { md: "span 2" } }}
+                                />
+
                                 <TextField
                                     label="Min price"
                                     size="small"

@@ -5,6 +5,7 @@ export const api = axios.create({
 });
 
 export type ListingFilters = {
+    q?: string;
     minPrice?: string;
     maxPrice?: string;
     bedrooms?: string;

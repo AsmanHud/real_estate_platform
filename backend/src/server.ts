@@ -33,11 +33,20 @@ const getPositiveIntegerQueryParam = (value: unknown, fallback: number) => {
     return parsed;
 };
 
+const getStringQueryParam = (value: unknown) => {
+    if (typeof value !== "string" || value.trim() === "") {
+        return undefined;
+    }
+
+    return value.trim();
+};
+
 app.get("/api/listings", async (req, res) => {
     try {
         const page = getPositiveIntegerQueryParam(req.query.page, 1);
         const limit = getPositiveIntegerQueryParam(req.query.limit, 20);
 
+        const query = getStringQueryParam(req.query.q);
         const minPrice = getNumberQueryParam(req.query.minPrice);
         const maxPrice = getNumberQueryParam(req.query.maxPrice);
         const bedrooms = getNumberQueryParam(req.query.bedrooms);
@@ -45,7 +54,27 @@ app.get("/api/listings", async (req, res) => {
         const maxArea = getNumberQueryParam(req.query.maxArea);
 
         const whereClauses: string[] = [];
-        const whereValues: number[] = [];
+        const whereValues: Array<number | string> = [];
+
+        if (query !== undefined) {
+            const searchTerm = `%${query.toLowerCase()}%`;
+            whereClauses.push(
+                `(
+                    LOWER(COALESCE(ai_title, title, '')) LIKE ?
+                    OR LOWER(COALESCE(ai_summary, '')) LIKE ?
+                    OR LOWER(COALESCE(title, '')) LIKE ?
+                    OR LOWER(COALESCE(address, '')) LIKE ?
+                    OR LOWER(COALESCE(description_raw, '')) LIKE ?
+                )`
+            );
+            whereValues.push(
+                searchTerm,
+                searchTerm,
+                searchTerm,
+                searchTerm,
+                searchTerm
+            );
+        }
 
         if (minPrice !== undefined) {
             whereClauses.push("price_total >= ?");

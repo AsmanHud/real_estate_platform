@@ -81,6 +81,12 @@ Open the Vite URL shown in the frontend terminal.
   and `ai_summary`.
 - `data/fixtures/mvp_listings_raw.json`: the same MVP data before LLM enrichment.
 
+## Assignment Deliverables
+
+- Reasoning document: `docs/REASONING.md`
+- Example user journeys: `docs/SCENARIOS.md`
+- Working prototype: backend API, MySQL fixture import, and React frontend
+
 ## Generate Data From Scratch
 
 ### Scrape data from Craigslist and select 100 normalized listings
