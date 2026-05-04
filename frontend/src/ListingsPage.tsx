@@ -1,4 +1,24 @@
 import { useEffect, useState } from "react";
+import {
+    Alert,
+    Box,
+    Button,
+    Card,
+    CardActionArea,
+    CardContent,
+    Chip,
+    Container,
+    Divider,
+    FormControl,
+    InputLabel,
+    MenuItem,
+    Pagination,
+    Select,
+    Skeleton,
+    Stack,
+    TextField,
+    Typography,
+} from "@mui/material";
 import { getListings, type ListingFilters } from "./api";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +29,7 @@ type Listing = {
     bedrooms: number | null;
     bathrooms: number | null;
     area_sqft: number | null;
+    address?: string | null;
     image_url: string | null;
 };
 
@@ -20,23 +41,54 @@ const emptyFilters: ListingFilters = {
     maxArea: "",
 };
 
+const formatMetric = (value: number | null, fallback = "?") =>
+    value === null ? fallback : value.toLocaleString();
+
 export default function ListingsPage() {
     const [listings, setListings] = useState<Listing[]>([]);
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
     const [filters, setFilters] = useState<ListingFilters>(emptyFilters);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     const limit = 20;
     const navigate = useNavigate();
 
     useEffect(() => {
-        getListings(page, limit, filters).then((res) => {
-            setListings(res.data.data);
-            setTotal(res.data.total);
-        });
+        let active = true;
+
+        setLoading(true);
+        setError("");
+
+        getListings(page, limit, filters)
+            .then((res) => {
+                if (!active) {
+                    return;
+                }
+
+                setListings(res.data.data);
+                setTotal(res.data.total);
+            })
+            .catch(() => {
+                if (active) {
+                    setError("Listings could not be loaded.");
+                }
+            })
+            .finally(() => {
+                if (active) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
     }, [page, filters]);
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const resultStart = total === 0 ? 0 : (page - 1) * limit + 1;
+    const resultEnd = Math.min(page * limit, total);
     const hasFilters = Object.values(filters).some(Boolean);
 
     const updateFilter = (key: keyof ListingFilters, value: string) => {
@@ -48,151 +100,324 @@ export default function ListingsPage() {
     };
 
     return (
-        <div style={{ padding: 20 }}>
-            <h1>Listings</h1>
-
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                    gap: 12,
-                    marginBottom: 20,
-                    textAlign: "left",
+        <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+            <Box
+                component="header"
+                sx={{
+                    bgcolor: "background.paper",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
                 }}
             >
-                <label>
-                    Min price
-                    <input
-                        min="0"
-                        type="number"
-                        value={filters.minPrice}
-                        onChange={(event) =>
-                            updateFilter("minPrice", event.target.value)
-                        }
-                        style={{ boxSizing: "border-box", width: "100%" }}
-                    />
-                </label>
-
-                <label>
-                    Max price
-                    <input
-                        min="0"
-                        type="number"
-                        value={filters.maxPrice}
-                        onChange={(event) =>
-                            updateFilter("maxPrice", event.target.value)
-                        }
-                        style={{ boxSizing: "border-box", width: "100%" }}
-                    />
-                </label>
-
-                <label>
-                    Bedrooms
-                    <select
-                        value={filters.bedrooms}
-                        onChange={(event) =>
-                            updateFilter("bedrooms", event.target.value)
-                        }
-                        style={{ boxSizing: "border-box", width: "100%" }}
+                <Container maxWidth="lg" sx={{ py: 3 }}>
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        justifyContent="space-between"
+                        spacing={2}
                     >
-                        <option value="">Any</option>
-                        <option value="0">Studio</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                    </select>
-                </label>
+                        <Box>
+                            <Typography variant="h1">Dallas rentals</Typography>
+                            <Typography color="text.secondary">
+                                Browse Craigslist-sourced listings with simple filters.
+                            </Typography>
+                        </Box>
 
-                <label>
-                    Min area
-                    <input
-                        min="0"
-                        type="number"
-                        value={filters.minArea}
-                        onChange={(event) =>
-                            updateFilter("minArea", event.target.value)
-                        }
-                        style={{ boxSizing: "border-box", width: "100%" }}
-                    />
-                </label>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                            <Chip
+                                label={`${total.toLocaleString()} matches`}
+                                color="primary"
+                                variant="outlined"
+                            />
+                            {hasFilters && (
+                                <Chip label="Filtered" variant="outlined" />
+                            )}
+                        </Stack>
+                    </Stack>
+                </Container>
+            </Box>
 
-                <label>
-                    Max area
-                    <input
-                        min="0"
-                        type="number"
-                        value={filters.maxArea}
-                        onChange={(event) =>
-                            updateFilter("maxArea", event.target.value)
-                        }
-                        style={{ boxSizing: "border-box", width: "100%" }}
-                    />
-                </label>
-
-                <button
-                    disabled={!hasFilters}
-                    onClick={() => {
-                        setPage(1);
-                        setFilters(emptyFilters);
-                    }}
-                    style={{ alignSelf: "end" }}
+            <Container maxWidth="lg" sx={{ py: 3 }}>
+                <Card
+                    variant="outlined"
+                    sx={{ mb: 3, boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)" }}
                 >
-                    Clear
-                </button>
-            </div>
+                    <CardContent>
+                        <Stack spacing={2}>
+                            <Typography variant="h3">Filters</Typography>
 
-            <div style={{ display: "grid", gap: 16 }}>
-                {listings.map((l) => (
-                    <div
-                        key={l.id}
-                        onClick={() => navigate(`/listing/${l.id}`)}
-                        style={{
-                            border: "1px solid #ddd",
-                            padding: 12,
-                            display: "flex",
-                            gap: 12,
-                            cursor: "pointer",
-                        }}
+                            <Box
+                                sx={{
+                                    display: "grid",
+                                    gap: 2,
+                                    gridTemplateColumns: {
+                                        xs: "1fr",
+                                        sm: "repeat(2, 1fr)",
+                                        md: "repeat(6, 1fr)",
+                                    },
+                                }}
+                            >
+                                <TextField
+                                    label="Min price"
+                                    min="0"
+                                    size="small"
+                                    type="number"
+                                    value={filters.minPrice}
+                                    onChange={(event) =>
+                                        updateFilter("minPrice", event.target.value)
+                                    }
+                                />
+
+                                <TextField
+                                    label="Max price"
+                                    min="0"
+                                    size="small"
+                                    type="number"
+                                    value={filters.maxPrice}
+                                    onChange={(event) =>
+                                        updateFilter("maxPrice", event.target.value)
+                                    }
+                                />
+
+                                <FormControl size="small">
+                                    <InputLabel id="bedrooms-label">
+                                        Bedrooms
+                                    </InputLabel>
+                                    <Select
+                                        label="Bedrooms"
+                                        labelId="bedrooms-label"
+                                        value={filters.bedrooms}
+                                        onChange={(event) =>
+                                            updateFilter(
+                                                "bedrooms",
+                                                event.target.value
+                                            )
+                                        }
+                                    >
+                                        <MenuItem value="">Any</MenuItem>
+                                        <MenuItem value="0">Studio</MenuItem>
+                                        <MenuItem value="1">1</MenuItem>
+                                        <MenuItem value="2">2</MenuItem>
+                                        <MenuItem value="3">3</MenuItem>
+                                        <MenuItem value="4">4</MenuItem>
+                                        <MenuItem value="5">5+</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <TextField
+                                    label="Min area"
+                                    min="0"
+                                    size="small"
+                                    type="number"
+                                    value={filters.minArea}
+                                    onChange={(event) =>
+                                        updateFilter("minArea", event.target.value)
+                                    }
+                                />
+
+                                <TextField
+                                    label="Max area"
+                                    min="0"
+                                    size="small"
+                                    type="number"
+                                    value={filters.maxArea}
+                                    onChange={(event) =>
+                                        updateFilter("maxArea", event.target.value)
+                                    }
+                                />
+
+                                <Button
+                                    disabled={!hasFilters}
+                                    onClick={() => {
+                                        setPage(1);
+                                        setFilters(emptyFilters);
+                                    }}
+                                    variant="outlined"
+                                >
+                                    Clear
+                                </Button>
+                            </Box>
+                        </Stack>
+                    </CardContent>
+                </Card>
+
+                <Stack spacing={2}>
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        justifyContent="space-between"
+                        spacing={1}
                     >
-                        {l.image_url && <img src={l.image_url} width={140} />}
+                        <Typography variant="h2">Available homes</Typography>
+                        <Typography color="text.secondary">
+                            Showing {resultStart.toLocaleString()}-
+                            {resultEnd.toLocaleString()} of{" "}
+                            {total.toLocaleString()}
+                        </Typography>
+                    </Stack>
 
-                        <div>
-                            <h3>{l.title}</h3>
-                            <p>${l.price_total.toLocaleString()}</p>
-                            <p>
-                                {l.bedrooms ?? "?"} bd • {l.bathrooms ?? "?"} ba
-                                {" • "}
-                                {l.area_sqft ?? "?"} sqft
-                            </p>
-                        </div>
-                    </div>
-                ))}
+                    {error && <Alert severity="error">{error}</Alert>}
 
-                {listings.length === 0 && <p>No listings match these filters.</p>}
-            </div>
+                    {loading
+                        ? Array.from({ length: 4 }).map((_, index) => (
+                              <Skeleton
+                                  height={174}
+                                  key={index}
+                                  sx={{ borderRadius: 1 }}
+                                  variant="rounded"
+                              />
+                          ))
+                        : listings.map((listing) => (
+                              <Card
+                                  key={listing.id}
+                                  variant="outlined"
+                                  sx={{
+                                      overflow: "hidden",
+                                      transition:
+                                          "box-shadow 160ms ease, transform 160ms ease",
+                                      "&:hover": {
+                                          boxShadow:
+                                              "0 10px 24px rgba(15, 23, 42, 0.12)",
+                                          transform: "translateY(-1px)",
+                                      },
+                                  }}
+                              >
+                                  <CardActionArea
+                                      onClick={() =>
+                                          navigate(`/listing/${listing.id}`)
+                                      }
+                                      sx={{
+                                          alignItems: "stretch",
+                                          display: "flex",
+                                          flexDirection: {
+                                              xs: "column",
+                                              sm: "row",
+                                          },
+                                      }}
+                                  >
+                                      {listing.image_url ? (
+                                          <Box
+                                              alt={listing.title}
+                                              component="img"
+                                              src={listing.image_url}
+                                              sx={{
+                                                  aspectRatio: {
+                                                      xs: "16 / 10",
+                                                      sm: "4 / 3",
+                                                  },
+                                                  flexShrink: 0,
+                                                  objectFit: "cover",
+                                                  width: {
+                                                      xs: "100%",
+                                                      sm: 220,
+                                                  },
+                                              }}
+                                          />
+                                      ) : (
+                                          <Box
+                                              sx={{
+                                                  alignItems: "center",
+                                                  aspectRatio: {
+                                                      xs: "16 / 10",
+                                                      sm: "4 / 3",
+                                                  },
+                                                  bgcolor: "#eef0f2",
+                                                  color: "text.secondary",
+                                                  display: "flex",
+                                                  flexShrink: 0,
+                                                  justifyContent: "center",
+                                                  width: {
+                                                      xs: "100%",
+                                                      sm: 220,
+                                                  },
+                                              }}
+                                          >
+                                              No photo
+                                          </Box>
+                                      )}
 
-            {/* pagination controls */}
-            <div style={{ marginTop: 20 }}>
-                <button
-                    disabled={page === 1}
-                    onClick={() => setPage(page - 1)}
-                >
-                    Prev
-                </button>
+                                      <CardContent sx={{ flex: 1, p: 2.5 }}>
+                                          <Stack spacing={1.5}>
+                                              <Box>
+                                                  <Typography variant="h2">
+                                                      $
+                                                      {listing.price_total.toLocaleString()}
+                                                  </Typography>
+                                                  <Typography
+                                                      color="text.primary"
+                                                      fontWeight={700}
+                                                      variant="body1"
+                                                  >
+                                                      {listing.title}
+                                                  </Typography>
+                                              </Box>
 
-                <span style={{ margin: "0 10px" }}>
-                    Page {page} / {totalPages || 1}
-                </span>
+                                              <Stack
+                                                  direction="row"
+                                                  divider={
+                                                      <Divider
+                                                          flexItem
+                                                          orientation="vertical"
+                                                      />
+                                                  }
+                                                  spacing={1.5}
+                                                  sx={{ flexWrap: "wrap" }}
+                                              >
+                                                  <Typography>
+                                                      <strong>
+                                                          {formatMetric(
+                                                              listing.bedrooms
+                                                          )}
+                                                      </strong>{" "}
+                                                      bd
+                                                  </Typography>
+                                                  <Typography>
+                                                      <strong>
+                                                          {formatMetric(
+                                                              listing.bathrooms
+                                                          )}
+                                                      </strong>{" "}
+                                                      ba
+                                                  </Typography>
+                                                  <Typography>
+                                                      <strong>
+                                                          {formatMetric(
+                                                              listing.area_sqft
+                                                          )}
+                                                      </strong>{" "}
+                                                      sqft
+                                                  </Typography>
+                                              </Stack>
 
-                <button
-                    disabled={page >= totalPages}
-                    onClick={() => setPage(page + 1)}
-                >
-                    Next
-                </button>
-            </div>
-        </div>
+                                              {listing.address && (
+                                                  <Typography color="text.secondary">
+                                                      {listing.address}
+                                                  </Typography>
+                                              )}
+                                          </Stack>
+                                      </CardContent>
+                                  </CardActionArea>
+                              </Card>
+                          ))}
+
+                    {!loading && listings.length === 0 && !error && (
+                        <Card variant="outlined">
+                            <CardContent>
+                                <Typography>No listings match these filters.</Typography>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    <Stack alignItems="center" sx={{ py: 2 }}>
+                        <Pagination
+                            color="primary"
+                            count={totalPages}
+                            onChange={(_, nextPage) => setPage(nextPage)}
+                            page={page}
+                            showFirstButton
+                            showLastButton
+                        />
+                    </Stack>
+                </Stack>
+            </Container>
+        </Box>
     );
 }
