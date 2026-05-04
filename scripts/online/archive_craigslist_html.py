@@ -11,15 +11,6 @@ from bs4 import BeautifulSoup
 available_listings_urls = {
     "dallas": {
         "rentals": "https://dallas.craigslist.org/search/apa",
-        "sales": "https://dallas.craigslist.org/search/rea",
-    },
-    "new_york": {
-        "rentals": "https://newyork.craigslist.org/search/apa",
-        "sales": "https://newyork.craigslist.org/search/rea",
-    },
-    "san_francisco": {
-        "rentals": "https://sfbay.craigslist.org/search/apa",
-        "sales": "https://sfbay.craigslist.org/search/rea",
     },
 }
 

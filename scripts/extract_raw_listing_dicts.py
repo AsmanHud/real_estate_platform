@@ -171,6 +171,6 @@ def parse_raw_directory(input_dir: str | Path, output_path: str | Path) -> None:
 
 if __name__ == "__main__":
     parse_raw_directory(
-        input_dir="data/raw_html/san_francisco/sales",
-        output_path="data/raw_json/san_francisco_sales_raw.json",
+        input_dir="data/raw_html/dallas/rentals",
+        output_path="data/raw_json/dallas_rentals_raw.json",
     )

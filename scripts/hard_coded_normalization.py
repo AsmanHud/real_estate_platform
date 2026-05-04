@@ -168,6 +168,6 @@ def normalize_raw_json_file_level_1(
 
 if __name__ == "__main__":
     normalize_raw_json_file_level_1(
-        input_path="data/raw_json/san_francisco_sales_raw.json",
-        output_path="data/processed/san_francisco_sales_level1.json",
+        input_path="data/raw_json/dallas_rentals_raw.json",
+        output_path="data/processed/dallas_rentals_level1.json",
     )
